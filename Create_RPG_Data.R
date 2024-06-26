@@ -63,7 +63,7 @@ archive_extract(archive = here(destfile_zip,"temp.001"), dir = here(destfile))
 
 # Open file
 
-#test
+#test2
 # Avant de supprimer:
 # alimenter l'objet /rajouter à l'objet, le tableau final, à l'intérieur
 
