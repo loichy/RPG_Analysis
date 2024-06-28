@@ -160,3 +160,4 @@ st_write(obj = corse_culture_bydep,
 
 tempor <- st_read(here(dir$prepdata, "corse_joined.shp"))
 
+

@@ -1,0 +1,51 @@
+---
+title: "test"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+test_82_ILO <- st_read("/Users/HP/Desktop/RPG_Analysis/Raw_Data/RPG_Data/tempfile/RPG_2-0__SHP_LAMB93_R24-2015_2015-01-01/RPG/1_DONNEES_LIVRAISON_2015/RPG_2-0_SHP_LAMB93_R24-2015/ILOTS_ANONYMES.shp")
+test_82_PARC <- st_read("/Users/HP/Desktop/RPG_Analysis/Raw_Data/RPG_Data/tempfile/RPG_2-0__SHP_LAMB93_R24-2015_2015-01-01/RPG/1_DONNEES_LIVRAISON_2015/RPG_2-0_SHP_LAMB93_R24-2015/PARCELLES_GRAPHIQUES.shp")
+```
+
+```{r}
+test_82_ILO_small <- test_82_ILO %>% # Take only 10% of all parcels randomly to work on a random smaller subsample
+  slice_sample(n = round(0.1*length(test_82_ILO$ID_ILOT)))
+test_82_PARC_small <- test_82_PARC %>% # Take only 10% of all parcels randomly to work on a random smaller subsample
+  slice_sample(n = round(0.1*length(test_82_PARC$ID_PARCEL)))
+```
+
+```{r}
+plot(test_82_ILO_small)
+plot(test_82_PARC_small)
+```
+
+```{r}
+test_182_PARC <- st_read("/Users/HP/Desktop/RPG_Analysis/Raw_Data/RPG_Data/tempfile/RPG_2-0__SHP_LAMB93_R11_2022-01-01/RPG/1_DONNEES_LIVRAISON_2023-08-01/RPG_2-0_SHP_LAMB93_R11-2022/PARCELLES_GRAPHIQUES.shp")
+```
+```{r}
+test_1_ILO <- st_read("/Users/HP/Desktop/RPG_Analysis/Raw_Data/RPG_Data/tempfile/RPG_1-0__SHP_LAMB93_R84-2007_2007-01-01/RPG/1_DONNEES_LIVRAISON_2007/RPG_1-0_SHP_LAMB93_R84-2007/ILOTS_ANONYMES.shp")
+```
+

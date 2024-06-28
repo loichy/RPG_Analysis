@@ -42,8 +42,8 @@ tableau_final <- list()
 # Objectif: pouvoir le faire pour 3 éléments diofférents des liens de tlééchargement (1, 90 et 182)
 tf <- tempfile()
 # Specify the URL of the file to be downloaded
-url <- all_rpg_links$url[82]
-region <- all_rpg_links$region_name[82]
+url <- all_rpg_links$url[182]
+region <- all_rpg_links$region_name[182]
 
 # Specify the destination file path
 destfile_zip <- here(dir$rpg_data, "temp_zip")
@@ -61,7 +61,31 @@ print(paste("File downloaded to", destfile))
 archive(here(destfile_zip, "temp.001"))
 archive_extract(archive = here(destfile_zip,"temp.001"), dir = here(destfile))
 
-# Open file
+# La boucle 
+# Function to find the .shp file
+find_shp_file <- function(directory) {
+  shp_files <- list.files(directory, pattern = "PARCELLES_GRAPHIQUES\\.shp$", recursive = TRUE, full.names = TRUE)
+  if (length(shp_files) > 0) {
+    return(shp_files[1])  # Return the first matching .shp file
+  } else {
+    return(NULL)
+  }
+}
+
+# Find the PARCELLES_GRAPHIQUES.shp file
+shp_file <- find_shp_file(destfile)
+if (!is.null(shp_file)) {
+  print(paste("Shapefile found:", shp_file))
+  
+  # Load the shapefile
+  rpg_data <- sf::st_read(shp_file)
+  print("Shapefile loaded successfully")
+  
+  # Additional processing can go here
+} else {
+  print("Shapefile not found")
+}
+
 
 #test2
 # Avant de supprimer:
