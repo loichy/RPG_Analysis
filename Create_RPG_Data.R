@@ -29,10 +29,10 @@ source(here(dir$rcode, "00_PrepareEnvironment.R"))
 source(here(dir$rcode, "01_RPGFileNames.R")) 
 # cREATE THE ALL_RPG_LINKS OBJECT WHICH CONTAINS ALL URL LINKS TO DOWNLOAD DATA, AND THE CORRESPONDING REGION NAME AND YEAR
 
-##### Apply to each RPG data (each url link) the data preparation process
-
-# Avant la boucle (à l'extérieur): créer une data frame vide ou une liste qui est vide
-tableau_final <- list()
+##### Load, prepare and append all rpg shapefiles
+# Create an empty list
+results <- list()
+# results <- data.frame()
 
 # 1. ouvrir dans l'objet destfile les données avec le nom "parcelles grpahiques", sinon avec "ilot parcellaire"
 # 2. Dans le cas de ilot parcellaire, regarder  si le code "load RPG" fonctionne (noms des variables similaires entre parcelles graphiques et ilot parecellaires?")
@@ -40,64 +40,109 @@ tableau_final <- list()
 # Même chose avec l'année
 # Rendre le code 02_Load_RPGFiles nettoyer des références à la corse
 # Objectif: pouvoir le faire pour 3 éléments diofférents des liens de tlééchargement (1, 90 et 182)
-tf <- tempfile()
-# Specify the URL of the file to be downloaded
-url <- all_rpg_links$url[182]
-region <- all_rpg_links$region_name[182]
 
-# Specify the destination file path
-destfile_zip <- here(dir$rpg_data, "temp_zip")
-dir.create(destfile_zip)
-destfile <- here(dir$rpg_data, "tempfile")
-dir.create(destfile)
-
-# Download the file
-download.file(url, here(destfile_zip,"temp.001"), mode = "wb")
-
-# Print a message indicating the download is complete
-print(paste("File downloaded to", destfile))
-
-# Unzip file
-archive(here(destfile_zip, "temp.001"))
-archive_extract(archive = here(destfile_zip,"temp.001"), dir = here(destfile))
-
-# La boucle 
-# Function to find the .shp file
-find_shp_file <- function(directory) {
-  shp_files <- list.files(directory, pattern = "PARCELLES_GRAPHIQUES\\.shp$", recursive = TRUE, full.names = TRUE)
-  if (length(shp_files) > 0) {
-    return(shp_files[1])  # Return the first matching .shp file
+# La boucle :
+for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
+  print(paste("Iteration ", i, " for region ",all_rpg_links$region_name[i], " and for year ", all_rpg_links$year[i]))
+  
+  i <- 1
+  # i <- 82 
+  # i <- 182
+  
+  # Create objects useful for iteration i
+  region_i <- all_rpg_links$region_name[i]
+  year_i <- all_rpg_links$year[i]
+  url_i <- all_rpg_links$url[i]   # Specify the URL of the file to be downloaded
+  
+  # Prepare folders for downloading
+  tf <- tempfile()
+  # Specify the destination file path
+  destfile_zip <- here(dir$rpg_data, "temp_zip")
+  dir.create(destfile_zip)
+  destfile <- here(dir$rpg_data, "tempfile")
+  dir.create(destfile)
+  
+  # Download the file
+  download.file(url_i, here(destfile_zip,"temp.001"), mode = "wb")
+  
+  # Print a message indicating the download is complete
+  print(paste("File downloaded to", destfile))
+  
+  # Unzip file
+  archive(here(destfile_zip, "temp.001"))
+  archive_extract(archive = here(destfile_zip,"temp.001"), dir = here(destfile))
+  
+  # Function to find the .shp file
+  find_pg_shp_file <- function(directory) {
+    shp_files <- list.files(destfile, pattern = "PARCELLES_GRAPHIQUES\\.shp$", recursive = TRUE, full.names = TRUE)
+    if (length(shp_files) > 0) {
+      return(shp_files[1])  # Return the first matching .shp file
+    } else {
+      return(NULL)
+    }
+  }
+  
+  find_ia_shp_file <- function(directory) {
+    shp_files <- list.files(destfile, pattern = "ILOTS_ANONYMES\\.shp$", recursive = TRUE, full.names = TRUE)
+    if (length(shp_files) > 0) {
+      return(shp_files[1])  # Return the first matching .shp file
+    } else {
+      return(NULL)
+    }
+  }
+  
+  # Find the PARCELLES_GRAPHIQUES.shp file
+  pg_shp_file <- find_pg_shp_file(destfile)
+  # Find the PARCELLES_GRAPHIQUES.shp file
+  ia_shp_file <- find_ia_shp_file(destfile)
+  
+  
+  if (!is.null(pg_shp_file)) {
+    print(paste("Shapefile 'PARCELLES_GRAPHIQUES' exists:", pg_shp_file))
+    
+    # Set the shapefile object name to be parcelles graphiques
+    rpg_data <- pg_shp_file
+    print(paste("Shapefile can be loaded:", rpg_data))
+    
+    # Additional processing can go here
+  } else if (!is.null(ia_shp_file)){
+    print(paste("Shapefile 'ILOTS_ANONYMES' is the only one:", ia_shp_file))
+    
+    # Set the shapefile object name to be ilots anonymes
+    rpg_data <- ia_shp_file
+    print(paste("Shapefile can be loaded:", rpg_data))
   } else {
-    return(NULL)
+    print("No shapefile found")
+  }
+  
+  
+  if (!is.null(rpg_data)) { # Apply to each RPG file (each url link, when it exists) the data preparation process
+    
+    
+    source(here(dir$rcode, "02_Load_RPGFile.R"))
+    # i <- 1 # test
+    # i <- 2 # test 2
+    results[[i]] <- result_i
+    names(results)[[i]] <- paste(region_i, year_i, sep="_")
+    # bind_raw
+    # rbind
+  } else {
+    print(paste("The region", region_i, " does not have shapefile for year ", year_i))
+  }
+  
+  #test2
+  # Avant de supprimer:
+  # alimenter l'objet /rajouter à l'objet, le tableau final, à l'intérieur
+  
+  # Delete file
+  if (dir.exists(here(destfile_zip))) {
+    #Delete file if it exists
+    unlink(here(destfile_zip), recursive = T)
+  }
+  if (dir.exists(here(destfile))) {
+    #Delete file if it exists
+    unlink(here(destfile), recursive=TRUE)
   }
 }
 
-# Find the PARCELLES_GRAPHIQUES.shp file
-shp_file <- find_shp_file(destfile)
-if (!is.null(shp_file)) {
-  print(paste("Shapefile found:", shp_file))
-  
-  # Load the shapefile
-  rpg_data <- sf::st_read(shp_file)
-  print("Shapefile loaded successfully")
-  
-  # Additional processing can go here
-} else {
-  print("Shapefile not found")
-}
-
-
-#test2
-# Avant de supprimer:
-# alimenter l'objet /rajouter à l'objet, le tableau final, à l'intérieur
-
-# Delete file
-if (dir.exists(here(destfile_zip))) {
-  #Delete file if it exists
-  unlink(here(destfile_zip), recursive = T)
-}
-if (dir.exists(here(destfile))) {
-  #Delete file if it exists
-  unlink(here(destfile), recursive=TRUE)
-}
-
+results
