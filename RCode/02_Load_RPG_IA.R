@@ -7,7 +7,8 @@ rpg_map_area <- rpg_map %>%
   mutate(
     AREA_PARC = st_area(geometry),#To have it in m²
     CODE_GROUP = CODE_CULTU
-  )
+  ) %>% 
+  dplyr::select(-CODE_CULTU) 
 # sum(rpg_map_area$Area_parcels)
 # sum(rpg_map_area$SURF_PARC)
 

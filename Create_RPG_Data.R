@@ -35,7 +35,7 @@ results <- list()
 # results <- data.frame()
 
 # Open department shapefile (that is used to aggregate parcels at the department level)
-departments <- st_read(here(dir$departments,"departements-20230101.shp")) # To adapt
+contours <- st_read(here(dir$departments,"departements-20230101.shp")) # To adapt
 
 # 1. ouvrir dans l'objet destfile les données avec le nom "parcelles grpahiques", sinon avec "ilot parcellaire"
 # 2. Dans le cas de ilot parcellaire, regarder  si le code "load RPG" fonctionne (noms des variables similaires entre parcelles graphiques et ilot parecellaires?")
