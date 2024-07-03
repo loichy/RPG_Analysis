@@ -85,7 +85,8 @@ departments_corsica <- departments_rgf93 %>%
 corsica_rpg_plot2 <- ggplot() +
   geom_sf(data = departments_corsica) +
   geom_sf(data = rpg_corsica_map_small, 
-          mapping = aes(fill=CODE_GROUP), lwd = 0) 
+          mapping = aes(fill=CODE_GROUP), 
+          lwd = 0) 
 ggsave(filename = here(dir$figures, "rpg_corsica_small_2022_2.pdf"), plot = corsica_rpg_plot, width = 9, height = 16)
 idf_rpg_plot2 <- ggplot() +
   geom_sf(data = departments_idf) +

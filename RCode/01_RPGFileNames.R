@@ -84,3 +84,4 @@ all_rpg_links <- url_df %>%
   left_join(rpg_dta_structure, by = c("region_code","year")) %>% 
   dplyr::select(region_name, region_code, year, url) %>% 
   arrange(year, region_name)
+
