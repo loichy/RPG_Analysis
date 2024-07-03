@@ -50,5 +50,5 @@ rsconnect/
 
 # Don't push shp data:
 Raw_Data/Communes_Shp/*
-Raw_Data/Departements_Shp/*
+Raw_Data/Departments_Shp/*
 Raw_Data/RPG_Data/*
