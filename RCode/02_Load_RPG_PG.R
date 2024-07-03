@@ -3,7 +3,7 @@ rpg_map <- st_read(rpg_data)
 rpg_map <- rpg_map %>% 
   mutate(
     AREA_PARC = st_area(geometry) #To have it in m²
-  )
+  ) # Ajouter le libellé! Nom variable: NOM_CULTU
 # sum(rpg_map$Area_parcels)
 # sum(rpg_map$SURF_PARC)
 

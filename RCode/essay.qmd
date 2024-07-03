@@ -3,12 +3,15 @@ title: "essay"
 format: html
 editor: visual
 ---
+
 ```{r}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(tidyverse, dplyr, readr, sp, raster, sf, here, tmap)
 
 ```
+
 # Pour les années récentes (type de données = PG)
+
 ```{r}
 departments = st_read("/Users/HP/Dropbox/MarketPower_Agri/RPGData/departements-2019-shp/contours-geographiques-tres-simplifies-des-departements-2019.shp")
 rpg_map = st_read("/Users/HP/Dropbox/MarketPower_Agri/RPGData/RPG_Corse_2022/PARCELLES_GRAPHIQUES.shp")
@@ -45,6 +48,7 @@ rpg_culture_bydep <- rpg_joined_dep %>% # Object that contain descriptive statis
 ```
 
 # Pour les année IA
+
 ```{r}
 rpg_map <- rpg_map %>% 
   mutate(
@@ -74,4 +78,3 @@ rpg_culture_bydep <- rpg_joined_dep %>% # Object that contain descriptive statis
             n_parcels  = n(),
             perc_parcels = n_parcels / N_Parcels[1])
 ```
-

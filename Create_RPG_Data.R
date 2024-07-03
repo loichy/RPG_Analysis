@@ -34,6 +34,9 @@ source(here(dir$rcode, "01_RPGFileNames.R"))
 results <- list()
 # results <- data.frame()
 
+# Open department shapefile (that is used to aggregate parcels at the department level)
+departments <- st_read(here(dir$departments,"departements-20230101.shp")) # To adapt
+
 # 1. ouvrir dans l'objet destfile les données avec le nom "parcelles grpahiques", sinon avec "ilot parcellaire"
 # 2. Dans le cas de ilot parcellaire, regarder  si le code "load RPG" fonctionne (noms des variables similaires entre parcelles graphiques et ilot parecellaires?")
 # Ajhouter dans le tableau issu du code "RPG Load data",  "corse_culture_bydep" (qu'il faudra renommer culture_bydep") ajouter le nom de la région
@@ -45,8 +48,8 @@ results <- list()
 for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
   print(paste("Iteration ", i, " for region ",all_rpg_links$region_name[i], " and for year ", all_rpg_links$year[i]))
   
-  i <- 1
-  # i <- 82 
+  # i <- 1
+  # i <- 82
   # i <- 182
   
   # Create objects useful for iteration i
@@ -118,10 +121,12 @@ for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
   
   if (!is.null(rpg_data)) { # Apply to each RPG file (each url link, when it exists) the data preparation process
     
+    if(!is.null(pg_shp_file)){
+      source(here(dir$rcode, "02_Load_RPG_PG.R"))
+    } else if (!is.null(ia_shp_file)){
+      source(here(dir$rcode, "02_Load_RPG_IA.R"))
+    }
     
-    source(here(dir$rcode, "02_Load_RPGFile.R"))
-    # i <- 1 # test
-    # i <- 2 # test 2
     results[[i]] <- result_i
     names(results)[[i]] <- paste(region_i, year_i, sep="_")
     # bind_raw
@@ -129,10 +134,6 @@ for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
   } else {
     print(paste("The region", region_i, " does not have shapefile for year ", year_i))
   }
-  
-  #test2
-  # Avant de supprimer:
-  # alimenter l'objet /rajouter à l'objet, le tableau final, à l'intérieur
   
   # Delete file
   if (dir.exists(here(destfile_zip))) {
@@ -145,4 +146,4 @@ for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
   }
 }
 
-results
+str(results)

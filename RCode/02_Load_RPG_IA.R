@@ -5,7 +5,8 @@ result_i <- rpg_map # culture_bydep
 
 rpg_map_area <- rpg_map %>% 
   mutate(
-    AREA_PARC = st_area(geometry) #To have it in m²
+    AREA_PARC = st_area(geometry),#To have it in m²
+    CODE_GROUP = CODE_CULTU
   )
 # sum(rpg_map_area$Area_parcels)
 # sum(rpg_map_area$SURF_PARC)
@@ -16,9 +17,9 @@ rpg_map_small <- rpg_map_area %>% # Take only 10% of all parcels randomly to wor
 ## deparments 
 # departments <- st_read(here(dir$departments, "map_fr_dept_remaked.shx.shp"))
 # Transpose CRS to have the same as RPG files CRS:
-departments_rgf93 <- st_transform(departments, crs = st_crs(rpg_map_area))
+contours_rgf93 <- st_transform(contours, crs = st_crs(rpg_map_area))
 
-rpg_joined <- st_join(departments_rgf93, rpg_map_small) # To test, use rpg_map small
+rpg_joined <- st_join(contours_rgf93, rpg_map_small) # To test, use rpg_map small
 rpg_joined_filtered <- rpg_joined %>% 
   filter(!is.na(NUM_ILOT))
 # temp_disappear_afterjoin <- rpg_map_small %>%
@@ -50,7 +51,7 @@ rpg_joined_filtered <- rpg_joined %>%
 
 
 rpg_joined_dep <- rpg_joined_filtered %>%
-  group_by(code_insee) %>% #First: construct a variable that for each parcel gives the surface of the agricultural area of the department in which it is located
+  group_by(geo_unit) %>% #First: construct a variable that for each parcel gives the surface of the agricultural area of the department in which it is located
   mutate(Surf_Agri_Dep = sum(AREA_PARC), # Surface of all agricultural parcels in the department
          N_Parcels      = n()
   ) %>% # Number of parcels in the department
@@ -59,7 +60,7 @@ rpg_joined_dep <- rpg_joined_filtered %>%
 # table(corse_joined_dep$N_Parcels)
 
 result_i <- rpg_joined_dep %>% # Object that contain descriptive statistics
-  group_by(code_insee, CODE_GROUP) %>% # Aggregate by culturer
+  group_by(geo_unit, CODE_GROUP) %>% # Aggregate by culturer
   summarise(SURF_km2 = sum(AREA_PARC, na.rm = T),# Surface of parcels dedicated to each culture in each department
             SURF_perc = sum(AREA_PARC, na.rm = T) / Surf_Agri_Dep[1], # Percentage in the total agricultural area of the department 
             n_parcels  = n(),
