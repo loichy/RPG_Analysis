@@ -6,7 +6,8 @@
 
 # Install and load packages
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(tidyverse, dplyr, readr, sp, raster, sf, here, tmap, rvest, archive)
+pacman::p_load(tidyverse, dplyr, readr, sp, raster, sf, here, tmap, rvest, 
+               archive, parallel)
 
 # Then: names of other folders in the R project folder
 dir$raw_data <- paste0(dir$root, "/Raw_Data") 
