@@ -15,6 +15,7 @@ rpg_map_area <- rpg_map %>%
 rpg_map_small <- rpg_map_area %>% # Take only 10% of all parcels randomly to work on a random smaller subsample
   slice_sample(n = round(0.1*length(rpg_map_area$NUM_ILOT)))
 
+
 ## deparments 
 # departments <- st_read(here(dir$departments, "map_fr_dept_remaked.shx.shp"))
 # Transpose CRS to have the same as RPG files CRS:

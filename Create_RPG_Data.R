@@ -34,8 +34,15 @@ source(here(dir$rcode, "01_RPGFileNames.R"))
 results <- list()
 # results <- data.frame()
 
+#download libelle and taking only the "group codes" 
+libelle <- read.csv2(here(dir$rpg_documentation,"REF_CULTURES_GROUPES_CULTURES_2020.csv"))
+libelle <- libelle[, (ncol(libelle)-1):ncol(libelle)]
+libelle <- unique(libelle)
+
 # Open department shapefile (that is used to aggregate parcels at the department level)
-contours <- st_read(here(dir$departments,"departements-20230101.shp")) # To adapt
+contours <- st_read(here(dir$departments,"map_fr_dept_remaked.shx.shp")) # To adapt
+contours <-contours %>%
+  mutate(geo_unit= code_insee)
 
 # 1. ouvrir dans l'objet destfile les données avec le nom "parcelles grpahiques", sinon avec "ilot parcellaire"
 # 2. Dans le cas de ilot parcellaire, regarder  si le code "load RPG" fonctionne (noms des variables similaires entre parcelles graphiques et ilot parecellaires?")
@@ -44,11 +51,13 @@ contours <- st_read(here(dir$departments,"departements-20230101.shp")) # To adap
 # Rendre le code 02_Load_RPGFiles nettoyer des références à la corse
 # Objectif: pouvoir le faire pour 3 éléments diofférents des liens de tlééchargement (1, 90 et 182)
 
+options(timeout = 1000)
+
 # La boucle :
 for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
   print(paste("Iteration ", i, " for region ",all_rpg_links$region_name[i], " and for year ", all_rpg_links$year[i]))
   
-  # i <- 1
+   i <- 1
   # i <- 82
   # i <- 182
   
