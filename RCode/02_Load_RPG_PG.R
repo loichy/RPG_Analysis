@@ -1,35 +1,43 @@
+# Load RPG data in R
 rpg_map <- st_read(rpg_data)
 
-rpg_map <- rpg_map %>% 
+# Compute parcel area and add culture label 
+rpg_map_area <- rpg_map %>% 
   mutate(
-    AREA_PARC = st_area(geometry) #To have it in m²
-  ) # Ajouter le libellé! Nom variable: NOM_CULTU
-# sum(rpg_map$Area_parcels)
-# sum(rpg_map$SURF_PARC)
+    AREA_PARC = st_area(geometry), #To have it in m²
+    year = year_i,
+    region = region_i
+  ) %>% 
+  left_join(label_data, by = "CODE_GROUP")# Ajouter le libellé! Nom variable: NOM_CULTU
 
-rpg_map_small <- rpg_map %>% # Take only 10% of all parcels randomly to work on a random smaller subsample
-  slice_sample(n = round(0.1*length(rpg_map$ID_PARCEL)))
+# Adapt CRS of geo_unit to match CRS of rpg data
+contours_rgf93 <- st_transform(contours, crs = st_crs(rpg_map_area))
 
-contours_rgf93 <- st_transform(contours, crs = st_crs(rpg_map))
+# Tell in which geo_unit falls each parcel
+rpg_joined <- st_join(contours_rgf93, rpg_map_area) # To test, use rpg_map_small to be quicker
 
-rpg_joined <- st_join(contours_rgf93, rpg_map_small) # To test, use rpg_map_small to be quicker
+# Reatain geo_unit with at least one parcel
 rpg_joined_filtered <- rpg_joined %>% 
   filter(!is.na(ID_PARCEL))
 
-rpg_joined_dep <- rpg_joined_filtered %>%
-  group_by(geo_unit) %>% #First: construct a variable that for each parcel gives the surface of the agricultural area of the department in which it is located
-  mutate(Surf_Agri_Dep = sum(AREA_PARC), # Surface of all agricultural parcels in the department
+# Compute useful variable at the geo_unit level
+rpg_joined_gu <- rpg_joined_filtered %>%
+  group_by(geo_unit) %>% #First: construct a variable that for each parcel gives the surface of the agricultural area of the geo_unit in which it is located
+  mutate(Surf_Agri_Tot = sum(AREA_PARC), # Surface of all agricultural parcels in the geo_unit
          N_Parcels      = n()
-  ) %>% # Number of parcels in the department
+  ) %>% # Number of parcels in the geo_unit
   ungroup()
-# table(rpg_joined_dep$Surf_Agri_Dep) # Just to check the results
-# table(rpg_joined_dep$N_Parcels)
 
-result_i <- rpg_joined_dep %>% # Object that contain descriptive statistics
-  group_by(geo_unit, CODE_GROUP) %>% # Aggregate by culturer
-  summarise(SURF_km2 = sum(AREA_PARC, na.rm = T),# Surface of parcels dedicated to each culture in each department
-            SURF_perc = sum(AREA_PARC, na.rm = T) / Surf_Agri_Dep[1], # Percentage in the total agricultural area of the department 
-            n_parcels  = n(),
-            perc_parcels = n_parcels / N_Parcels[1])
-
-
+result_i <- rpg_joined_gu %>% # Object that contain descriptive statistics
+  group_by(geo_unit, CODE_GROUP) %>% # Aggregate by culture
+  summarise(
+    cult_label = first(LABEL_CODE_GROUP),
+    region = first(region),
+    name = first(nom),
+    year = first(year),
+    surf_tot_geo_unit_m2 = first(surf_ha)*10000,
+    surf_agri_geo_unit_m2 = first(Surf_Agri_Tot),
+    surf_cult_m2 = sum(AREA_PARC, na.rm = T),# Surface of parcels dedicated to each culture in each department
+    surf_cult_perc = sum(AREA_PARC, na.rm = T) / Surf_Agri_Tot[1], # Percentage in the total agricultural area of the commune
+    parcel_cult_n  = n(),
+    parcel_cult_perc = parcel_cult_n / N_Parcels[1]) 

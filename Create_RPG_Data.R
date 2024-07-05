@@ -30,12 +30,23 @@ source(here(dir$rcode, "01_RPGFileNames.R"))
 # cREATE THE ALL_RPG_LINKS OBJECT WHICH CONTAINS ALL URL LINKS TO DOWNLOAD DATA, AND THE CORRESPONDING REGION NAME AND YEAR
 
 ##### Load, prepare and append all rpg shapefiles
-# Create an empty list
-results <- list()
-# results <- data.frame()
 
-# Open department shapefile (that is used to aggregate parcels at the department level)
-contours <- st_read(here(dir$departments,"departements-20230101.shp")) # To adapt
+# Open french communes shapefile (that is used to aggregate parcels at the commune level)
+contours <- st_read(here(dir$communes,"communes-20220101.shp")) %>% 
+  mutate(geo_unit = insee)
+
+# Load culture labels
+libelle <- read.csv(file = here(dir$rpg_documentation,"REF_CULTURES_GROUPES_CULTURES_2020.csv"), sep = ";") # Load libelle data
+label_data <- libelle %>% 
+  mutate(CODE_GROUP = as.character(CODE_GROUPE_CULTURE),
+         LABEL_CODE_GROUP = LIBELLE_GROUPE_CULTURE) %>% 
+  dplyr::select(CODE_GROUP, LABEL_CODE_GROUP) %>% # Keep relevant variables
+  group_by(CODE_GROUP) %>% # Keep single observation by group
+  slice(1) %>% 
+  ungroup()
+
+# Set download timeout
+options(timeout=300)
 
 # 1. ouvrir dans l'objet destfile les données avec le nom "parcelles grpahiques", sinon avec "ilot parcellaire"
 # 2. Dans le cas de ilot parcellaire, regarder  si le code "load RPG" fonctionne (noms des variables similaires entre parcelles graphiques et ilot parecellaires?")
@@ -45,10 +56,13 @@ contours <- st_read(here(dir$departments,"departements-20230101.shp")) # To adap
 # Objectif: pouvoir le faire pour 3 éléments diofférents des liens de tlééchargement (1, 90 et 182)
 
 # La boucle :
-for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
+system.time(
+results <- lapply(X = seq_along(all_rpg_links$url)[c(1,82,182)], FUN = function(i){
+  # for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
+  
   print(paste("Iteration ", i, " for region ",all_rpg_links$region_name[i], " and for year ", all_rpg_links$year[i]))
   
-  # i <- 1
+  i <- 1
   # i <- 82
   # i <- 182
   
@@ -72,7 +86,7 @@ for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
   print(paste("File downloaded to", destfile))
   
   # Unzip file
-  archive(here(destfile_zip, "temp.001"))
+  # archive(here(destfile_zip, "temp.001"))
   archive_extract(archive = here(destfile_zip,"temp.001"), dir = here(destfile))
   
   # Function to find the .shp file
@@ -122,13 +136,14 @@ for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
   if (!is.null(rpg_data)) { # Apply to each RPG file (each url link, when it exists) the data preparation process
     
     if(!is.null(pg_shp_file)){
-      source(here(dir$rcode, "02_Load_RPG_PG.R"))
+      system.time(source(here(dir$rcode, "02_Load_RPG_PG.R")))
     } else if (!is.null(ia_shp_file)){
-      source(here(dir$rcode, "02_Load_RPG_IA.R"))
+      system.time(source(here(dir$rcode, "02_Load_RPG_IA.R")))
     }
     
-    results[[i]] <- result_i
-    names(results)[[i]] <- paste(region_i, year_i, sep="_")
+    names(result_i) <- paste(region_i, year_i, sep="_")
+    result_i
+    
     # bind_raw
     # rbind
   } else {
@@ -145,5 +160,6 @@ for(i in c(1,82,182)){ #c(1:length(all_rpg_links$url))
     unlink(here(destfile), recursive=TRUE)
   }
 }
-
+)
+)
 str(results)
