@@ -56,6 +56,8 @@ source(here(dir$rcode, "02_Load_RPG.R"))
 # results <- sapply(X = seq_along(all_rpg_links$url)[c(13,26)], FUN = PrepareRPGData, simplify = FALSE)
 # )
 # utilisateur     système      écoulé 
+# 157.13        4.51      426.39 
+# utilisateur     système      écoulé 
 # 253.83        8.68      719.91 
 
 # Set up parallel computing
@@ -63,16 +65,32 @@ no_cores <- availableCores() - 1 # Number of core/clusters
 plan(multisession, # Parameters of the parallel computing session
      workers = 7 # Number of cores
      )
-options(timeout=600) # Set downloading timeout limit to ten minutes
+options(timeout=800) # Set downloading timeout limit to ten minutes
 load(here(dir$prep_data, "PrepareData_RFunction.Rdata"))  # Load function to downlaod and prepare RPG data on each core
-list_object <- as.list(which(all_rpg_links$region_code %in% c("R94")))# seq_along(all_rpg_links$url)) #[c(13,26,39,52,65)],39,52,65,78,91,104,130,182
-
+list_object <- as.list(seq_along(all_rpg_links$url))# which(all_rpg_links$region_code %in% c("R94")) # seq_along(all_rpg_links$url)) #[c(13,26,39,52,65)],39,52,65,78,91,104,130,182
+sample_list_object <- sample(list_object, size = 14)
+# all_rpg_links$url[which(all_rpg_links$region_code %in% c("R94"))]
 # Parallel computing session
 tic() # Count total time
-results <- future_map(list_object, PrepareRPGData) # Apply PrepareRPGData function to all list_object elements in a parallel computing session
+results <- future_map(sample_list_object, PrepareRPGData) # Apply PrepareRPGData function to all list_object elements in a parallel computing session
 toc()
 
 results_df <- do.call(rbind, results) # Unlist all results in a dataframe
 
-save(results_df, file = here(dir$prep_data, "RPG_combined_R11_R94.Rdata")) # Save results
+save(results_df, file = here(dir$prep_data, "test_rpg3.Rdata")) # Save results
+
+
+##### Add geometry column for all communes
+# Open french communes shapefile (that is used to aggregate parcels at the commune level)
+contours <- st_read(here(dir$communes,"communes-20220101.shp")) %>% 
+  mutate(geo_unit = insee)
+# Adapt CRS of geo_unit to match CRS of rpg data
+contours_rgf93 <- st_transform(contours, crs = st_crs(results_df)) 
+
+results_df_contours <- inner_join(results_df %>% as.data.frame(), 
+                                  contours_rgf93 %>% as.data.frame(), 
+                                  by = "geo_unit")
+results_sf <- result_test  %>%  
+  st_sf(sf_column_name = 'geometry.y')
+
 

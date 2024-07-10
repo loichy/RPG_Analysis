@@ -1,6 +1,6 @@
 PrepareRPGData <- function(i){
 
-  # i <- 182
+  # i <- 129
   # i <- 82
   # i <- 182
   
@@ -19,7 +19,7 @@ PrepareRPGData <- function(i){
   destfile <- here(dir$rpg_data, paste0("tempfile_", region_code_i, "_", year_i))
   dir.create(destfile)
   
-  options(timeout=600)
+  options(timeout=800)
   # Download the file
   download.file(url_i, here(destfile_zip,"temp.001"), mode = "wb")
   
@@ -101,6 +101,8 @@ PrepareRPGData <- function(i){
       
       # Retain geo_unit with at least one parcel
       rpg_joined_filtered <- rpg_joined %>% 
+        as.data.frame() %>% # Remove the sf structure
+        dplyr::select(-geometry) %>% # Remove the geometry column
         filter(!is.na(ID_PARCEL))
       
       # Compute useful variable at the geo_unit level
@@ -147,10 +149,13 @@ PrepareRPGData <- function(i){
       contours_rgf93 <- st_transform(contours, crs = st_crs(rpg_map_area))
       
       # Tell in which geo_unit falls each parcel
-      rpg_joined <- st_join(st_make_valid(rpg_map_area), contours_rgf93, largest = T) # To test, use rpg_map small
+      rpg_joined <- st_join(st_make_valid(rpg_map_area), contours_rgf93, largest = T) # To test and be quicker, use rpg_map small
+
       
       # Retain geo_unit with at least one parcel
       rpg_joined_filtered <- rpg_joined %>% 
+        as.data.frame() %>% # Remove the sf structure
+        dplyr::select(-geometry) %>% # Remove the geometry column
         filter(!is.na(NUM_ILOT)) # Only keep geo_unit with at least one parcel
       
       # Compute useful variable at the geo-unit level
@@ -175,7 +180,7 @@ PrepareRPGData <- function(i){
                   surf_cult_perc = sum(AREA_PARC, na.rm = T) / Surf_Agri_Tot[1], # Percentage in the total agricultural area of the commune
                   parcel_cult_n  = n(),
                   parcel_cult_perc = parcel_cult_n / N_Parcels[1]
-        )
+        ) 
     }
     
     # result_i
