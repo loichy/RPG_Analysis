@@ -85,3 +85,4 @@ all_rpg_links <- url_df %>%
   dplyr::select(region_name, region_code, year, url) %>% 
   arrange(year, region_name)
 
+save(all_rpg_links, file = here(dir$prep_data, "all_rpg_links.Rdata"))
