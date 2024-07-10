@@ -65,7 +65,7 @@ plan(multisession, # Parameters of the parallel computing session
      )
 options(timeout=600) # Set downloading timeout limit to ten minutes
 load(here(dir$prep_data, "PrepareData_RFunction.Rdata"))  # Load function to downlaod and prepare RPG data on each core
-list_object <- as.list(which(all_rpg_links$region_code %in% c("R11","R94")))# seq_along(all_rpg_links$url)) #[c(13,26,39,52,65)],39,52,65,78,91,104,130,182
+list_object <- as.list(which(all_rpg_links$region_code %in% c("R94")))# seq_along(all_rpg_links$url)) #[c(13,26,39,52,65)],39,52,65,78,91,104,130,182
 
 # Parallel computing session
 tic() # Count total time
