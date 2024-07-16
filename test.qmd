@@ -45,7 +45,7 @@ plot(test_82_PARC_small)
 ```{r}
 test_182_PARC <- st_read("/Users/HP/Desktop/RPG_Analysis/Raw_Data/RPG_Data/tempfile/RPG_2-0__SHP_LAMB93_R11_2022-01-01/RPG/1_DONNEES_LIVRAISON_2023-08-01/RPG_2-0_SHP_LAMB93_R11-2022/PARCELLES_GRAPHIQUES.shp")
 ```
+
 ```{r}
 test_1_ILO <- st_read("/Users/HP/Desktop/RPG_Analysis/Raw_Data/RPG_Data/tempfile/RPG_1-0__SHP_LAMB93_R84-2007_2007-01-01/RPG/1_DONNEES_LIVRAISON_2007/RPG_1-0_SHP_LAMB93_R84-2007/ILOTS_ANONYMES.shp")
 ```
-

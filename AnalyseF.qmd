@@ -1,0 +1,73 @@
+---
+title: "AnalyseF"
+author: "El Ghali"
+format: html
+editor: visual
+---
+
+```{r}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, dplyr, readr, sp, raster, sf, here, tmap, units, ggplot2,vegan)
+```
+
+```{r}
+chemin <- "/Users/HP/Desktop/RPG_20072010.Rdata"
+load(chemin)
+```
+
+# Culture la plus présente par département en utilisant le pourcentage cultivé 
+
+```{r}
+culture_plus_presente_pourc <- RPG_20072010 %>%
+  group_by(name, year) %>%
+  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
+  ungroup()
+
+```
+
+
+```{r}
+# Calcul de la diversité à partir du nombre de cultures différentes 
+diversite_cultures <- RPG_20072010 %>%
+  group_by(name, year) %>%
+  summarise(nombre_cultures = n_distinct(cult_label)) %>%
+  ungroup()
+```
+
+```{r}
+commune_specifique <- "Abainville"
+
+
+plot_data <- culture_plus_presente_pourc %>%
+  filter(name == commune_specifique) %>%
+  ggplot(aes(x = year, y = surf_cult_perc, fill = cult_label)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = paste("Évolution des cultures à", commune_specifique),
+       x = "Année", y = "Pourcentage de surface cultivée") +
+  theme_minimal()
+print(plot_data)
+```
+
+```{r}
+# Calcul de l'indice de Shannon-Wiener basé sur la surface cultivée
+
+indice_diversite <- RPG_20072010 %>%
+  group_by(geo_unit, year) %>%
+  summarise(indice_diversite = diversity(surf_cult_m2))
+
+```
+
+
+
+# Culture la plus présente par département en utilisant le nombre de parcelles 
+
+```{r}
+culture_plus_presente_parcels <- RPG_20072010 %>%
+  group_by(name, year) %>%
+  filter(parcel_cult_perc == max(parcel_cult_perc, na.rm = TRUE)) %>%
+  ungroup()
+
+```
+
+
+
