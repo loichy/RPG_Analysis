@@ -11,8 +11,8 @@
 rm(list=ls())
 gc()
 
-##### Only required package to initiate
-# Clean and load packages (other packages are install and loaded from "00_PrepareEnvironment.R")
+##### Only required package to initiate is pacman
+# Install and load packages (other packages are install and loaded from "00_PrepareEnvironment.R")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(here)
 
@@ -23,33 +23,15 @@ dir$root <- getwd() # First: the place of the R project
 dir$rcode <- paste0(dir$root, "/RCode")
 
 ##### Prepare working environment
+# Run R scrit "00"
 source(here(dir$rcode, "00_PrepareEnvironment.R"))
 
-##### Extract all RPG data files
+##### Extract all RPG data files for url page of IGN, and load RPG data documentation on labels
+# Run Rscript 01
 source(here(dir$rcode, "01_RPGFileNames.R")) 
 # cREATE THE ALL_RPG_LINKS OBJECT WHICH CONTAINS ALL URL LINKS TO DOWNLOAD DATA, AND THE CORRESPONDING REGION NAME AND YEAR
 
-##### Load, prepare and append all rpg shapefiles
-# Load culture labels
-libelle <- read.csv(file = here(dir$rpg_documentation,"REF_CULTURES_GROUPES_CULTURES_2020.csv"), sep = ";") # Load libelle data
-label_data <- libelle %>% 
-  mutate(CODE_GROUP = as.character(CODE_GROUPE_CULTURE),
-         LABEL_CODE_GROUP = LIBELLE_GROUPE_CULTURE) %>% 
-  dplyr::select(CODE_GROUP, LABEL_CODE_GROUP) %>% # Keep relevant variables
-  group_by(CODE_GROUP) %>% # Keep single observation by group
-  slice(1) %>% 
-  ungroup() %>% 
-  bind_rows(data.frame(CODE_GROUP = c("10", "12", "13", "27"),
-                       LABEL_CODE_GROUP = c("Semences",
-                                            "Gel industriel",
-                                            "Autre gel",
-                                            "Arboriculture")))
-save(label_data, file = here(dir$prep_data, "label_rpg.Rdata"))
-
-##### Load function that load and prepare RPG data
-source(here(dir$rcode, "02_Load_RPG.R"))
-
-##### Apply functions on all RPG files
+##### Load function that load and prepare all RPG data files
 
 # First funcction: download data
 # Takes approximately five hours (DO NOT RUN!)
@@ -119,34 +101,27 @@ source(here(dir$rcode, "02_Load_RPG.R"))
 #   Sys.sleep(1)
 # }
 
-
-# Second function: load in R and prepare RPG data to all RPG shapefiles and save them individually
-
-# Test with sapply
+# Run Rscript "02" that creates function which load and  data prepares all RPG files individually
+source(here(dir$rcode, "02_Load_RPG.R"))
+# Apply function to all files
+# with sapply
 system.time(
 results <- sapply(X = seq_along(all_rpg_links$url), FUN = PrepareRPGData, simplify = FALSE)
 )
-# utilisateur     système      écoulé
-# 157.13        4.51      426.39
-# utilisateur     système      écoulé
-# 253.83        8.68      719.91
 
-# Set up parallel computing
-no_cores <- availableCores() - 1 # Number of core/clusters
-plan(multisession, # Parameters of the parallel computing session
-     workers = 14 # Number of cores
-     )
-options(future.globals.maxSize = 8000 * 1024^2)
-load(here(dir$prep_data, "PrepareData_RFunction.Rdata"))  # Load function to downlaod and prepare RPG data on each core
-list_object <- as.list(seq_along(all_rpg_links$url))# which(all_rpg_links$region_code %in% c("R94")) # seq_along(all_rpg_links$url)) #[c(13,26,39,52,65)],39,52,65,78,91,104,130,182
-# sample_list_object <- sample(list_object, size = 14)
-# all_rpg_links$url[which(all_rpg_links$region_code %in% c("R94"))]
-# Parallel computing session
-tic() # Count total time
-results <- future_map(list_object, PrepareRPGData) # Apply PrepareRPGData function to all list_object elements in a parallel computing session
-toc()
+# Test with parallel computing (not working yet) using future package
+# no_cores <- availableCores() - 1 # Number of core/clusters
+# plan(multisession, # Parameters of the parallel computing session
+#      workers = 14 # Number of cores
+#      )
+# options(future.globals.maxSize = 8000 * 1024^2)
+# load(here(dir$prep_data, "PrepareData_RFunction.Rdata"))  # Load function to downlaod and prepare RPG data on each core
+# list_object <- as.list(seq_along(all_rpg_links$url))# which(all_rpg_links$region_code %in% c("R94")) # seq_along(all_rpg_links$url)) #[c(13,26,39,52,65)],39,52,65,78,91,104,130,182
+# tic() # Count total time
+# results <- future_map(list_object, PrepareRPGData) # Apply PrepareRPGData function to all list_object elements in a parallel computing session
+# toc()
 
-##### Reload all prepared RPG file and combine them in a single dataframe
+##### Compile all individual prepared RPG file aggregated at the commune level to create a single global dataframe
 # Get all rpg file names
 RPG_files <- list.files(dir$prep_rpg_data, full.names = T)
 # Create an empty list, where we will save them
@@ -175,25 +150,34 @@ temp <- combined_df %>%
          parcel_cult_perc = parcel_cult_n / N_Parcels) %>% 
   ungroup()
 
-# twice <- temp %>% 
-#   filter(year == "2007") %>% 
-#   arrange(geo_unit, CODE_GROUP) %>% 
-#   filter(name %in% c("Arbent", "Beaupont", "Belleydoux", "Nivigne et Suran", "Coligny"))
-#   
 RPG_20072010 <- temp
 
+# save object
+save(RPG_20072010, file = here(dir$prep_data, "RPG_20072010.Rdata")) 
 
-##### Add geometry column for all communes
-# Open french communes shapefile (that is used to aggregate parcels at the commune level)
+# Add geometry column for all communes
+load(here(dir$prep_data, "RPG_20072010.Rdata"))  # Load created file
+# load(here(dir$prep_data, "RPG_R94_sf.Rdata"))
 contours <- st_read(here(dir$communes,"communes-20220101.shp")) %>% 
   mutate(geo_unit = insee)
 # Add geometry variable
 results_df_contours <- inner_join(RPG_20072010 %>% as.data.frame(), 
                                   contours %>% as.data.frame(), 
                                   by = "geo_unit")
-RPG_20072010_sf <- results_df_contours  %>%  
-  st_sf(sf_column_name = 'geometry') %>% 
-  dplyr::select(geo_unit, name, region, year,data_type, surf_tot_geo_unit_m2, surf_agri_geo_unit_m2, N_Parcels,
-         CODE_GROUP, cult_label, surf_cult_m2, surf_cult_perc, parcel_cult_n, parcel_cult_perc)
 
-save(RPG_20072010, file = here(dir$prep_data, "RPG_20072010.Rdata"))
+# Convert df aas a sf object
+RPG_20072010_sf <- results_df_contours  %>%  
+  st_as_sf() %>% 
+  dplyr::select(geo_unit, name, region, year,data_type, surf_tot_geo_unit_m2, surf_agri_geo_unit_m2, N_Parcels,
+                CODE_GROUP, cult_label, surf_cult_m2, surf_cult_perc, parcel_cult_n, parcel_cult_perc)
+  
+# # Test to plot
+# test <- rpg_r94_sf %>%
+#   group_by(name) %>%
+#   slice(1)
+# fig_temp3 <- ggplot() +
+#   geom_sf(data=test)
+# ggsave(plot = fig_temp3, filename = here(dir$figures, "fig_temp3.pdf"), width = 16, height = 9)
+
+# Save object
+save(RPG_20072010_sf, file = here(dir$prep_data, "RPG_20072010.Rdata"))
