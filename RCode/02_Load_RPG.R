@@ -4,32 +4,19 @@ PrepareRPGData <- function(i){
   # i <- 82
   # i <- 182
   
-  # Print starting message
-  print(paste("Iteration ", i, " for region ",all_rpg_links$region_name[i], " and for year ", all_rpg_links$year[i]))
-  
   # Create objects useful for iteration i
   region_i <- all_rpg_links$region_name[i]
   region_code_i <- all_rpg_links$region_code[i]
   year_i <- all_rpg_links$year[i]
-  url_i <- all_rpg_links$url[i]   # Specify the URL of the file to be downloaded
+  # url_i <- all_rpg_links$url[i]   # Specify the URL of the file to be downloaded
+  
+  # Print starting message
+  print(paste("Iteration ", i, " for region '",all_rpg_links$region_name[i], "' and for year ", all_rpg_links$year[i], sep=""))
   
   # Specify the destination file path
-  destfile_zip <- here(dir$rpg_data, paste0("tempfile_zip_", region_code_i, "_", year_i))
-  dir.create(destfile_zip)
+
   destfile <- here(dir$rpg_data, paste0("tempfile_", region_code_i, "_", year_i))
-  dir.create(destfile)
-  
-  options(timeout=800)
-  # Download the file
-  download.file(url_i, here(destfile_zip,"temp.001"), mode = "wb")
-  
-  # Print a message indicating the download is complete
-  print(paste("File downloaded to", destfile))
-  
-  # Unzip file
-  # archive(here(destfile_zip, "temp.001"))
-  archive_extract(archive = here(destfile_zip,"temp.001"), dir = here(destfile))
-  
+
   # Function to find the .shp file
   find_pg_shp_file <- function(directory) {
     shp_files <- list.files(destfile, pattern = "PARCELLES_GRAPHIQUES\\.shp$", recursive = TRUE, full.names = TRUE)
@@ -56,19 +43,13 @@ PrepareRPGData <- function(i){
   
   
   if (!is.null(pg_shp_file)) {
-    print(paste("Shapefile 'PARCELLES_GRAPHIQUES' exists:", pg_shp_file))
-    
     # Set the shapefile object name to be parcelles graphiques
     rpg_data <- pg_shp_file
-    print(paste("Shapefile can be loaded:", rpg_data))
     
     # Additional processing can go here
   } else if (!is.null(ia_shp_file)){
-    print(paste("Shapefile 'ILOTS_ANONYMES' is the only one:", ia_shp_file))
-    
     # Set the shapefile object name to be ilots anonymes
     rpg_data <- ia_shp_file
-    print(paste("Shapefile can be loaded:", rpg_data))
   } else {
     print("No shapefile found")
   }
@@ -128,6 +109,21 @@ PrepareRPGData <- function(i){
           parcel_cult_n  = n(),
           parcel_cult_perc = parcel_cult_n / N_Parcels[1]) 
       
+      # Save it in prepared data folder
+      save(result_i, file = here(dir$prep_rpg_data, paste0("Prepared_RPG_", region_code_i, "_", year_i,".Rdata")))
+      
+      # Return message that it is saved
+      file_path <- here(dir$prep_rpg_data, paste0("Prepared_RPG_", region_code_i, "_", year_i))
+      if (file.exists(file_path)) {
+        message_y <- paste("File '", paste0("Prepared_RPG_", region_code_i, "_", year_i), "' is correctly saved.", sep="")
+        print(message_y)
+        return(message_y)
+      } else {
+        message_n <- paste("File for region '", paste0(region_code_i, "' and for year '", year_i), "' cannot be correctly prepared.", sep="")
+        print(message_n)
+        return(message_n)
+      }
+      
     } else if (!is.null(ia_shp_file)){
       rpg_map <- st_read(rpg_data)
       
@@ -181,26 +177,38 @@ PrepareRPGData <- function(i){
                   parcel_cult_n  = n(),
                   parcel_cult_perc = parcel_cult_n / N_Parcels[1]
         ) 
+      
+      # Save data ile in prepared data folder
+      save(result_i, file = here(dir$prep_rpg_data, paste0("Prepared_RPG_", region_code_i, "_", year_i,".Rdata")))
+      
+      # Return message that it is saved
+      file_path <- here(dir$prep_rpg_data, paste0("Prepared_RPG_", region_code_i, "_", year_i))
+      if (file.exists(file_path)) {
+        message_y <- paste("File '", paste0("Prepared_RPG_", region_code_i, "_", year_i), "' is correctly saved.", sep="")
+        print(message_y)
+        return(message_y)
+      } else {
+        message_n <- paste("File for region '", paste0(region_code_i, "' and for year '", year_i), "' cannot be correctly prepared.", sep="")
+        print(message_n)
+        return(message_n)
+      }
+      
     }
     
-    # result_i
     
   } else {
-    print(paste("The region", region_i, " does not have shapefile for year ", year_i))
-    result_i <- NULL
-    
+    message_na <- paste("The region '", region_code_i, "' does not have shapefile for year ", year_i, sep= "")
+    print(message_na)
+    return(message_na)
   }
   
   # Delete file
-  if (dir.exists(here(destfile_zip))) {
-    #Delete file if it exists
-    unlink(here(destfile_zip), recursive = T)
-  }
+
   if (dir.exists(here(destfile))) {
     #Delete file if it exists
     unlink(here(destfile), recursive=TRUE)
   }
-  return(result_i)
+  
 }
 
 save(PrepareRPGData, file = here(dir$prep_data, "PrepareData_RFunction.Rdata"))
