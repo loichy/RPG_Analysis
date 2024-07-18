@@ -1,0 +1,194 @@
+---
+title: "AnalyseF"
+author: "El Ghali"
+format: html
+editor: visual
+---
+
+```{r, include=FALSE}
+##### Only required package to initiate
+# Clean and load packages (other packages are install and loaded from "00_PrepareEnvironment.R")
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(here)
+
+
+#####  Precised relative access to useful Rcodes
+dir <- list() # First create an empty list, that we then fill with subobjects
+dir$root <- getwd() # First: the place of the R project
+dir$rcode <- paste0(dir$root, "/RCode")
+
+##### Prepare working environment
+source(here(dir$rcode, "00_PrepareEnvironment.R")) # Si. package à rajouter: dans le script R 00
+
+##### Load Rdata
+load(here(dir$prep_data, "RPG_20072010.Rdata"))
+load(here(dir$prep_data, "RPG_R94_sf.Rdata"))
+
+```
+
+# Introduction
+
+Les données du Recensement parcellaires Graphiques (RPG) sont téléchargeables sur
+[ce site](https://geoservices.ign.fr/rpg)
+RPG stands for Registre Parcellaire Graphique which is a geographical information system permitting the identification of agricultural parcels, giving detailed information about crops and occupation of each parcel.
+The source of this data is declaration from the farmers.
+
+# Présentation des données RPG
+Reorendre le document créé
+
+Notre analyse s'inscrit au sein d'un champ qui exploite également ces données. Paragraphe d'xplication RPG explorer. Pour plus de détails voir le document
+
+Les données présentes 
+
+# Préparation des données
+
+En queles paragraphes: rsésumer la préparation.
+
+--> 
+Les données brutes présentes sur le site donnent pour chaque année un fichier shp (qui nous intéresse pour notre analyse) où l'on trouve principalement l'identifiant de l'unité géographique ses coordonnées et la culture qui y est présente. Afin de pouvoir mieux exploiter ces données et faire les analyses de diversité qui nous intéressent, nous commençons par une partie de "préparation des données" pour créer un tableau avec les variables principales qui nous permettrons de faire notre analyse, et notament en aggrégant les données à une échelle qui nous intéresse, ici l'échelle de la commune.
+
+
+# Analyse descriptive et exploratoire des données
+
+Analyse des cultures en France pour l'année 2010 
+```{r}
+
+
+df_2010 <- RPG_20072010 %>% filter(year == 2010)
+
+aggregated_data <- df_2010 %>%
+  group_by(cult_label) %>%
+  summarise(
+    surf_cult_m2 = sum(surf_cult_m2, na.rm = TRUE),
+    parcel_cult_n = sum(parcel_cult_n, na.rm = TRUE)
+  )
+
+total_surf_agri <- sum(df_2010$surf_agri_geo_unit_m2, na.rm = TRUE)
+total_parcels <- sum(df_2010$N_Parcels, na.rm = TRUE)
+
+aggregated_data <- aggregated_data %>%
+  mutate(
+    surf_cult_perc = (surf_cult_m2 / total_surf_agri) * 100,
+    parcel_cult_perc = (parcel_cult_n / total_parcels) * 100
+  )
+
+Tableau_analyse_decriptive1 <- aggregated_data %>%
+  dplyr::select(
+    `Label de culture` = cult_label,
+    `Surface totale dédiée (m2)` = surf_cult_m2,
+    `Pourcentage de la surface totale (%)` = surf_cult_perc,
+    `Nombre total de parcelles` = parcel_cult_n,
+    `Pourcentage du nombre total de parcelles (%)` = parcel_cult_perc
+  )
+Tableau_analyse_decriptive1$`Pourcentage de la surface totale (%)` <- gsub("\\[.*\\]", "", Tableau_analyse_decriptive1$`Pourcentage de la surface totale (%)`)
+Tableau_analyse_decriptive1$`Pourcentage de la surface totale (%)` <- as.numeric(Tableau_analyse_decriptive1$`Pourcentage de la surface totale (%)`)
+```
+
+Et on obtient le tableau ci-dessous:
+
+```{r}
+kbl(x = Tableau_analyse_decriptive1, format = "html")
+```
+
+Représentation graphique: 
+```{r}
+ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage de la surface totale (%)`, fill = `Label de culture`)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Répartition des surfaces dédiées par label de culture en 2010",
+       y = "Pourcentage de la surface totale (%)",
+       fill = "Label de culture") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+```
+```{r}
+ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage du nombre total de parcelles (%)`, fill = `Label de culture`)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Répartition des parcelles par label de culture en 2010",
+       y = "Pourcentage du nombre total de parcelles (%)",
+       fill = "Label de culture") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Résultats:
+En termes de pourcentage de surface, les 4 cultures les plus présentes en 2010, par ordre, sont: "Prairies permanentes", "Blé tendre", "Prairies temporaires" et "Maïs grain et ensillage".
+Et en termes de pourcentage de parcelles, les 4 cultures les plus présentes sont, par ordre, "Prairies permanentes", "Prairies temporaires", "Blé tendre" et "Maïs grain et ensillage".
+On remarque que les 4 cultures les plus cultivées sont les mêmes en considérant le pourcentage de surface agricole ou le pourcentage de parcelles.
+
+## Analyse par communes et par année
+
+Pour chaque commune, on calcule la surface agricole totale (somme de toutes les parcelles agricoles), puis on calcule la surface dédiée à chaque culture (somme des surfaces des parcelles dans la commune dédiées à cette culture). On peut ainsi obtenir un pourcentage de surface dédié à cette culture, par commune, et par année. 
+
+```{r}
+result <- df_2010 %>%
+  group_by(name, cult_label) %>%
+  summarise(
+    surf_agri_totale = sum(surf_agri_geo_unit_m2, na.rm = TRUE),
+    surf_cult_totale = sum(surf_cult_m2, na.rm = TRUE),
+    pourcentage_surface = (sum(surf_cult_m2, na.rm = TRUE) / sum(surf_agri_geo_unit_m2, na.rm = TRUE)) * 100
+  ) %>%
+  ungroup()
+
+print(result)
+```
+
+
+### Culture la plus présente par commune 
+ 
+La culture avec la plus grande surface par commune et par année
+
+```{r}
+# Créer le tableau de données pour la carte
+culture_plus_presente_pourc <- RPG_20072010 %>%
+  group_by(name, year) %>%
+  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
+  ungroup()
+
+```
+
+```{r}
+# Calcul de la diversité à partir du nombre de cultures différentes 
+diversite_cultures <- RPG_20072010 %>%
+  group_by(name, year) %>%
+  summarise(nombre_cultures = n_distinct(cult_label)) %>%
+  ungroup()
+```
+
+```{r}
+commune_specifique <- "Abainville"
+
+
+plot_data <- culture_plus_presente_pourc %>%
+  filter(name == commune_specifique) %>%
+  ggplot(aes(x = year, y = surf_cult_perc, fill = cult_label)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = paste("Évolution des cultures à", commune_specifique),
+       x = "Année", y = "Pourcentage de surface cultivée") +
+  theme_minimal()
+print(plot_data)
+```
+
+```{r}
+# Calcul de l'indice de Shannon-Wiener basé sur la surface cultivée
+
+indice_diversite <- RPG_20072010 %>%
+  group_by(geo_unit, year) %>%
+  summarise(indice_diversite_surf = diversity(surf_cult_m2),
+            indice_diversite_surf_perc = diversity(surf_cult_perc),
+            indice_diversite_parcel_perc = diversity(parcel_cult_perc))
+
+```
+
+# Culture la plus présente par département en utilisant le nombre de parcelles
+
+```{r}
+culture_plus_presente_parcels <- RPG_20072010 %>%
+  group_by(name, year) %>%
+  filter(parcel_cult_perc == max(parcel_cult_perc, na.rm = TRUE)) %>%
+  ungroup()
+
+```
