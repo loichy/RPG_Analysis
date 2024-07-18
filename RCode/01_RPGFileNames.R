@@ -1,5 +1,6 @@
 #===============================================================================
-# Description: Actract all file names of RPG data on the URL adress
+# Description: Extract all file names of RPG data on the URL adress
+# And load documentation on culture groups labels
 # author: Loic Henry and El Ghali Debbagh
 # Contact loic.henry@dauphine.psl.eu
 #===============================================================================
@@ -83,4 +84,23 @@ table(url_df$year)
 all_rpg_links <- url_df %>% 
   left_join(rpg_dta_structure, by = c("region_code","year")) %>% 
   dplyr::select(region_name, region_code, year, url) %>% 
-  arrange(year, region_name)
+  arrange(year, region_name) %>% 
+  mutate(url = sub("\\n$", "", url))
+
+# Documentation on culture labels
+# Load label data
+libelle <- read.csv(file = here(dir$rpg_documentation,"REF_CULTURES_GROUPES_CULTURES_2020.csv"), sep = ";") # Load libelle data
+label_data <- libelle %>% 
+  mutate(CODE_GROUP = as.character(CODE_GROUPE_CULTURE), # Prepare table of labels
+         LABEL_CODE_GROUP = LIBELLE_GROUPE_CULTURE) %>% 
+  dplyr::select(CODE_GROUP, LABEL_CODE_GROUP) %>% # Keep relevant variables
+  group_by(CODE_GROUP) %>% # Keep single observation by group
+  slice(1) %>% 
+  ungroup() %>% 
+  bind_rows(data.frame(CODE_GROUP = c("10", "12", "13", "27"), # Add some missing code and labels
+                       LABEL_CODE_GROUP = c("Semences",
+                                            "Gel industriel",
+                                            "Autre gel",
+                                            "Arboriculture")))
+
+save(label_data, all_rpg_links, file = here(dir$prep_data, "all_rpg_links.Rdata"))

@@ -49,4 +49,10 @@ po/*~
 rsconnect/
 
 # Don't push shp data:
-Raw_Data/*
+Raw_Data/Communes_Shp/*
+Raw_Data/Departments_Shp/*
+Raw_Data/RPG_Data/*
+Prepared_Data/*
+
+# Don't push figures
+Figures/
