@@ -28,29 +28,30 @@ load(here(dir$prep_data, "RPG_R94_sf.Rdata"))
 
 # Introduction
 
-Les données du Recensement parcellaires Graphiques (RPG) sont téléchargeables sur
-[ce site](https://geoservices.ign.fr/rpg)
-RPG stands for Registre Parcellaire Graphique which is a geographical information system permitting the identification of agricultural parcels, giving detailed information about crops and occupation of each parcel.
-The source of this data is declaration from the farmers.
+Les données du Recensement parcellaires Graphiques (RPG) sont téléchargeables sur [ce site](https://geoservices.ign.fr/rpg) RPG stands for Registre Parcellaire Graphique which is a geographical information system permitting the identification of agricultural parcels, giving detailed information about crops and occupation of each parcel. The source of this data is declaration from the farmers.
 
 # Présentation des données RPG
+
 Reorendre le document créé
 
 Notre analyse s'inscrit au sein d'un champ qui exploite également ces données. Paragraphe d'xplication RPG explorer. Pour plus de détails voir le document
 
-Les données présentes 
+Les données présentes
 
 # Préparation des données
 
-En queles paragraphes: rsésumer la préparation.
+En queles paragraphes: rsésumer la préparation
+- Télécharge les 182 fichiers
+- Chacun des fichiers
 
---> 
-Les données brutes présentes sur le site donnent pour chaque année un fichier shp (qui nous intéresse pour notre analyse) où l'on trouve principalement l'identifiant de l'unité géographique ses coordonnées et la culture qui y est présente. Afin de pouvoir mieux exploiter ces données et faire les analyses de diversité qui nous intéressent, nous commençons par une partie de "préparation des données" pour créer un tableau avec les variables principales qui nous permettrons de faire notre analyse, et notament en aggrégant les données à une échelle qui nous intéresse, ici l'échelle de la commune.
+- Descriptif
 
+--\> Les données brutes présentes sur le site donnent pour chaque année un fichier shp (qui nous intéresse pour notre analyse) où l'on trouve principalement l'identifiant de l'unité géographique ses coordonnées et la culture qui y est présente. Afin de pouvoir mieux exploiter ces données et faire les analyses de diversité qui nous intéressent, nous commençons par une partie de "préparation des données" pour créer un tableau avec les variables principales qui nous permettrons de faire notre analyse, et notament en aggrégant les données à une échelle qui nous intéresse, ici l'échelle de la commune.
 
 # Analyse descriptive et exploratoire des données
 
-Analyse des cultures en France pour l'année 2010 
+Analyse des cultures en France pour l'année 2010
+
 ```{r}
 
 
@@ -90,7 +91,8 @@ Et on obtient le tableau ci-dessous:
 kbl(x = Tableau_analyse_decriptive1, format = "html")
 ```
 
-Représentation graphique: 
+Représentation graphique:
+
 ```{r}
 ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage de la surface totale (%)`, fill = `Label de culture`)) +
   geom_bar(stat = "identity", width = 1) +
@@ -103,6 +105,7 @@ ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage de la surface t
 
 
 ```
+
 ```{r}
 ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage du nombre total de parcelles (%)`, fill = `Label de culture`)) +
   geom_bar(stat = "identity", width = 1) +
@@ -114,14 +117,11 @@ ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage du nombre total
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Résultats:
-En termes de pourcentage de surface, les 4 cultures les plus présentes en 2010, par ordre, sont: "Prairies permanentes", "Blé tendre", "Prairies temporaires" et "Maïs grain et ensillage".
-Et en termes de pourcentage de parcelles, les 4 cultures les plus présentes sont, par ordre, "Prairies permanentes", "Prairies temporaires", "Blé tendre" et "Maïs grain et ensillage".
-On remarque que les 4 cultures les plus cultivées sont les mêmes en considérant le pourcentage de surface agricole ou le pourcentage de parcelles.
+Résultats: En termes de pourcentage de surface, les 4 cultures les plus présentes en 2010, par ordre, sont: "Prairies permanentes", "Blé tendre", "Prairies temporaires" et "Maïs grain et ensillage". Et en termes de pourcentage de parcelles, les 4 cultures les plus présentes sont, par ordre, "Prairies permanentes", "Prairies temporaires", "Blé tendre" et "Maïs grain et ensillage". On remarque que les 4 cultures les plus cultivées sont les mêmes en considérant le pourcentage de surface agricole ou le pourcentage de parcelles.
 
 ## Analyse par communes et par année
 
-Pour chaque commune, on calcule la surface agricole totale (somme de toutes les parcelles agricoles), puis on calcule la surface dédiée à chaque culture (somme des surfaces des parcelles dans la commune dédiées à cette culture). On peut ainsi obtenir un pourcentage de surface dédié à cette culture, par commune, et par année. 
+Pour chaque commune, on calcule la surface agricole totale (somme de toutes les parcelles agricoles), puis on calcule la surface dédiée à chaque culture (somme des surfaces des parcelles dans la commune dédiées à cette culture). On peut ainsi obtenir un pourcentage de surface dédié à cette culture, par commune, et par année.
 
 ```{r}
 result <- df_2010 %>%
@@ -136,9 +136,8 @@ result <- df_2010 %>%
 print(result)
 ```
 
+### Culture la plus présente par commune
 
-### Culture la plus présente par commune 
- 
 La culture avec la plus grande surface par commune et par année
 
 ```{r}
