@@ -38,7 +38,7 @@ RPG stands for Registre Parcellaire Graphique which is a geographical informatio
 
 Reorendre le document créé
 
-Notre analyse s'inscrit au sein d'un champ qui exploite également ces données. Paragraphe d'xplication RPG explorer. Pour plus de détails voir le document
+Notre analyse s'inscrit au sein d'un champ qui exploite également ces données. Paragraphe d'xplication RPG explorer. Pour plus de détails voir le document.
 
 --> Les données brutes présentes sur le site donnent pour chaque année un fichier shp (qui nous intéresse pour notre analyse) où l'on trouve principalement l'identifiant de l'unité géographique ses coordonnées et la culture qui y est présente. Afin de pouvoir mieux exploiter ces données et faire les analyses de diversité qui nous intéressent, nous commençons par une partie de "préparation des données" pour créer un tableau avec les variables principales qui nous permettrons de faire notre analyse, et notament en aggrégant les données à une échelle qui nous intéresse, ici l'échelle de la commune.
 # Préparation des données
@@ -138,6 +138,27 @@ ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage du nombre total
 ```
 
 Résultats: En termes de pourcentage de surface, les 4 cultures les plus présentes en 2010, par ordre, sont: "Prairies permanentes", "Blé tendre", "Prairies temporaires" et "Maïs grain et ensillage". Et en termes de pourcentage de parcelles, les 4 cultures les plus présentes sont, par ordre, "Prairies permanentes", "Prairies temporaires", "Blé tendre" et "Maïs grain et ensillage". On remarque que les 4 cultures les plus cultivées sont les mêmes en considérant le pourcentage de surface agricole ou le pourcentage de parcelles.
+
+# Cartes
+```{r}
+#Pour les cartes
+#
+contours <- st_read(here(dir$communes,"communes-20220101.shp")) %>% 
+  mutate(geo_unit = insee)
+# Add geometry variable
+results_df_contours <- inner_join(RPG_20072010_df %>% as.data.frame(), 
+                                  contours %>% as.data.frame(), 
+                                  by = "geo_unit")
+ 
+# Convert df aas a sf object
+RPG_20072010_sf <- results_df_contours  %>%  
+  st_as_sf() %>% 
+  dplyr::select(geo_unit, name, region, year,data_type, surf_tot_geo_unit_m2, surf_agri_geo_unit_m2, N_Parcels,
+                CODE_GROUP, cult_label, surf_cult_m2, surf_cult_perc, parcel_cult_n, parcel_cult_perc)
+```
+
+
+
 
 ## Analyse par communes et par année
 
@@ -270,10 +291,7 @@ head(most_cultivated_per_commune_all_years)
 ```{r}
 most_cultivated_per_commune_all_years$Année <- as.numeric(as.character(most_cultivated_per_commune_all_years$Année))
 
-# Vérifier les données
-str(most_cultivated_per_commune_all_years)
 
-# Créer la carte animée avec ggplot2 et gganimate
 p <- ggplot(data = most_cultivated_per_commune_all_years) +
   geom_sf(aes(fill = Culture_la_plus_cultivée), color = NA) +  # Pas de contour visible
   labs(title = "Culture la plus cultivée en {closest_state}",  # Dynamique pour l'année
@@ -281,16 +299,13 @@ p <- ggplot(data = most_cultivated_per_commune_all_years) +
   theme_minimal() +
   theme(legend.position = "right")
 
-# Ajouter l'animation avec gganimate
 animated_map <- p +
   transition_states(Année, transition_length = 2, state_length = 1) +  # Variable représentant l'année
   ease_aes('linear') +  # Transition linéaire pour l'animation
   labs(title = "Culture la plus cultivée en {closest_state}")  # Titre dynamique pour l'année
 
-# Afficher l'animation
 animated_map
 
-# Sauvegarder l'animation en tant que fichier GIF
 anim_save("animated_culture_map.gif", animation = animated_map)
 ```
 
@@ -298,33 +313,22 @@ anim_save("animated_culture_map.gif", animation = animated_map)
 ## Indice de diversité: 
 
 Indice de Shannon : L'indice prend en compte le nombre d'espèces vivant dans un habitat (richesse) et leur abondance relative (uniformité). Il est calculé comme l'opposé de la somme de la proportion des individus de la ième espèce dans l'ensemble de la communauté, multipliée par son logarithme naturel.
-```{r}
-# Calcul de l'indice de Shannon-Wiener basé sur la surface cultivée
+Indice de Simpson : L'indice de diversité de Simpson est une mesure de la diversité qui prend en compte le nombre d'espèces présentes ainsi que l'abondance relative de chaque espèce. À mesure que la richesse en espèces et l'uniformité augmentent, la diversité augmente également.
 
-indice_diversite <- RPG_20072010_sf %>%
-  group_by(geo_unit, year) %>%
-  summarise(indice_diversite_surf = diversity(surf_cult_m2),
-            indice_diversite_surf_perc = diversity(surf_cult_perc),
-            indice_diversite_parcel_perc = diversity(parcel_cult_perc))
+L'indice de diversité de Simpson est calculé en prenant la proportion de chaque espèce dans une communauté, en élevant ces proportions au carré, en les additionnant, puis en soustrayant cette somme de 1. Cet indice varie de 0 (aucune diversité) à 1 (diversité élevée).
+
+```{r}
+RPG_20072010_df$surf_cult_perc <- as.numeric(str_extract(RPG_20072010_df$surf_cult_perc, "[0-9\\.]+"))
+
+diversity_indices <- RPG_20072010_df %>%
+  group_by(year, name) %>%
+  summarize(
+    shannon_diversity = diversity(surf_cult_perc, index = "shannon"),
+    simpson_diversity = diversity(surf_cult_perc, index = "simpson"),
+  ) %>%
+  ungroup()
 
 ```
 
 
-# cartes
-```{r}
-#Pour les cartes
-#
-contours <- st_read(here(dir$communes,"communes-20220101.shp")) %>% 
-  mutate(geo_unit = insee)
-# Add geometry variable
-results_df_contours <- inner_join(RPG_20072010_df %>% as.data.frame(), 
-                                  contours %>% as.data.frame(), 
-                                  by = "geo_unit")
- 
-# Convert df aas a sf object
-RPG_20072010_sf <- results_df_contours  %>%  
-  st_as_sf() %>% 
-  dplyr::select(geo_unit, name, region, year,data_type, surf_tot_geo_unit_m2, surf_agri_geo_unit_m2, N_Parcels,
-                CODE_GROUP, cult_label, surf_cult_m2, surf_cult_perc, parcel_cult_n, parcel_cult_perc)
-```
 
