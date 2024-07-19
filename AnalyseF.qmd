@@ -255,45 +255,7 @@ ggplot(data = most_cultivated_per_commune_2009) +
   theme(legend.position = "right")
 ```
 
-## Analyse dynamique; Évolution de la culture la plus présente par commune entre 2007 et 2010: 
-```{r}
 
-# Créer un tableau pour chaque année et combiner les résultats
-most_cultivated_per_commune_all_years <- RPG_20072010_sf %>%
-  filter(year %in% 2007:2010) %>%  # Filtrer les années de 2007 à 2010
-  group_by(year, name) %>%
-  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
-  ungroup() %>%
-  transmute(
-    Commune = name,
-    Année = year,
-    Culture_la_plus_cultivée = cult_label
-  )
-
-# Vérifier le tableau préparé
-head(most_cultivated_per_commune_all_years)
-```
-
-```{r}
-most_cultivated_per_commune_all_years$Année <- as.numeric(as.character(most_cultivated_per_commune_all_years$Année))
-
-
-p <- ggplot(data = most_cultivated_per_commune_all_years) +
-  geom_sf(aes(fill = Culture_la_plus_cultivée), color = NA) +  # Pas de contour visible
-  labs(title = "Culture la plus cultivée en {closest_state}",  # Dynamique pour l'année
-       fill = "Culture la plus cultivée") +
-  theme_minimal() +
-  theme(legend.position = "right")
-
-animated_map <- p +
-  transition_states(Année, transition_length = 2, state_length = 1) +  # Variable représentant l'année
-  ease_aes('linear') +  # Transition linéaire pour l'animation
-  labs(title = "Culture la plus cultivée en {closest_state}")  # Titre dynamique pour l'année
-
-animated_map
-
-anim_save("animated_culture_map.gif", animation = animated_map)
-```
 
 
 ## Indice de diversité: 
