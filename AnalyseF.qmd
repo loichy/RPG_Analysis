@@ -21,40 +21,61 @@ dir$rcode <- paste0(dir$root, "/RCode")
 source(here(dir$rcode, "00_PrepareEnvironment.R")) # Si. package à rajouter: dans le script R 00
 
 ##### Load Rdata
-load(here(dir$prep_data, "RPG_20072010.Rdata"))
+load(here(dir$prep_data, "RPG_20072010_df.Rdata"))
+#RPG_20072010_df <- as.data.frame(RPG_20072010_sf)
+#RPG_20072010_df <- RPG_20072010_df %>% dplyr::select(-geometry)
+#save(RPG_20072010_df, file = here(dir$prep_data, "RPG_20072010_df.Rdata"))
 load(here(dir$prep_data, "RPG_R94_sf.Rdata"))
 
 ```
 
 # Introduction
 
-Les données du Recensement parcellaires Graphiques (RPG) sont téléchargeables sur
-[ce site](https://geoservices.ign.fr/rpg)
-RPG stands for Registre Parcellaire Graphique which is a geographical information system permitting the identification of agricultural parcels, giving detailed information about crops and occupation of each parcel.
-The source of this data is declaration from the farmers.
+Les données du Recensement parcellaires Graphiques (RPG) sont téléchargeables sur [ce site](https://geoservices.ign.fr/rpg) 
+RPG stands for Registre Parcellaire Graphique which is a geographical information system permitting the identification of agricultural parcels, giving detailed information about crops and occupation of each parcel. The source of this data is declaration from the farmers.
 
 # Présentation des données RPG
+
 Reorendre le document créé
 
-Notre analyse s'inscrit au sein d'un champ qui exploite également ces données. Paragraphe d'xplication RPG explorer. Pour plus de détails voir le document
+Notre analyse s'inscrit au sein d'un champ qui exploite également ces données. Paragraphe d'xplication RPG explorer. Pour plus de détails voir le document.
 
-Les données présentes 
-
+--> Les données brutes présentes sur le site donnent pour chaque année un fichier shp (qui nous intéresse pour notre analyse) où l'on trouve principalement l'identifiant de l'unité géographique ses coordonnées et la culture qui y est présente. Afin de pouvoir mieux exploiter ces données et faire les analyses de diversité qui nous intéressent, nous commençons par une partie de "préparation des données" pour créer un tableau avec les variables principales qui nous permettrons de faire notre analyse, et notament en aggrégant les données à une échelle qui nous intéresse, ici l'échelle de la commune.
 # Préparation des données
 
-En queles paragraphes: rsésumer la préparation.
+Les données brutes tels téléchargés à partir du site, sont sous deux formats selon l'année; avant 2015 l'unté de compte étant l'ilôt qui devient après 2015 des parcelles graphiques, les noms des bases de données sont aussi donnés par Ilot anonmymes avant 2015 et Parcelles graphiques après 2015.
+Les données brutes de Graphiques parcellaires contiennent les colonnes suivantes :
+ID parcel : Identifiant de la parcelle, unique pour l'ensemble des données.
+CODE_CULTU : Code de la culture principale de la parcelle.
+CODE_GROUP : Code du groupe de la culture principale de la parcelle.
+CULTURE_D1 : Code de la culture intermédiaire (culture intercalée entre deux récoltes de cultures principales) sur la parcelle.
+CULTURE_D2 : Code de la deuxième culture intermédiaire (culture intercalée entre deux récoltes de cultures principales).
+(En fait, dans notre analyse, nous n'utilisons pas les deux dernières variables)
+SURF_PARC : Superficie de la parcelle en hectares.
+Concernant Ilot anonymes les tableau contiennent les mêmes informations excluant les colonnes CULTURE_D1 et CULTURE_D2 (les noms des colonnes ne sont pas toujours les mêmes mais contiennent, en règle général,les mêmes informations)
 
---> 
-Les données brutes présentes sur le site donnent pour chaque année un fichier shp (qui nous intéresse pour notre analyse) où l'on trouve principalement l'identifiant de l'unité géographique ses coordonnées et la culture qui y est présente. Afin de pouvoir mieux exploiter ces données et faire les analyses de diversité qui nous intéressent, nous commençons par une partie de "préparation des données" pour créer un tableau avec les variables principales qui nous permettrons de faire notre analyse, et notament en aggrégant les données à une échelle qui nous intéresse, ici l'échelle de la commune.
+Notre travail de préparation de données consiste à passer de ces données là au tableau RPG_20072010_df.
+
+Pour y arriver, pour chaque année (et donc de base de données téléchargé sur le site) nous calculons en m^2 la surface de chaque parcelle agricole grâce à la fonction st_area, nous ajoutons le libelle de chaque groupe de culture grace à un tableau égalment téléchargé depuis le site qui précise quel libellé correspond à quel code de groupe de culture, puis l'étape la plus importante est celle des contours qui détermine l'échelle à laquelle nous allons effectuer nos analyses, ici nous choisissons les communes, on télécharge donc un shp file qui nous donne le conteours des communes puis en utilisant la fonction st_join on "calque" le contours des communes sur les données téléchargés.
+ 
+Nous procédons à d'autres calcul pour avoir un tableau avec les variables principales qui nous intéressent cult_label, data_type,region ,name ,year = first(year),surf_tot_geo_unit_m2, surf_agri_geo_unit_m2, surf_cult_m2, surf_cult_perc.
+
+On aligne ensuite le tableau pour toutes les années et les régions dont on dispose pour obtenir un tableau où il y a toutes les données nécessaires pour notre analyse.
+
+Finalement à partir de ce dernier nous créons RPG200720010 danslequel nous ajoutons le calcul de la surface agricole totale le nombre totale de parcelles, la surface agricole par culture et le nombre de parcelles par culture et finalement le pourcentage agrciole de chaque culture et le pourcentage en parcelles de chaque culture.
+
+C'est à partir de ce dernier que nous essayons de "mesurer" la diversité dans ce document.
+
 
 
 # Analyse descriptive et exploratoire des données
 
-Analyse des cultures en France pour l'année 2010 
+Analyse des cultures en France pour l'année 2010
+
 ```{r}
 
 
-df_2010 <- RPG_20072010 %>% filter(year == 2010)
+df_2010 <- RPG_20072010_df %>% filter(year == 2010)
 
 aggregated_data <- df_2010 %>%
   group_by(cult_label) %>%
@@ -90,7 +111,8 @@ Et on obtient le tableau ci-dessous:
 kbl(x = Tableau_analyse_decriptive1, format = "html")
 ```
 
-Représentation graphique: 
+Représentation graphique:
+Premièrement par pourcengate de la surface
 ```{r}
 ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage de la surface totale (%)`, fill = `Label de culture`)) +
   geom_bar(stat = "identity", width = 1) +
@@ -103,6 +125,7 @@ ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage de la surface t
 
 
 ```
+Puis par poourcentage du nombre de parcelles 
 ```{r}
 ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage du nombre total de parcelles (%)`, fill = `Label de culture`)) +
   geom_bar(stat = "identity", width = 1) +
@@ -114,81 +137,198 @@ ggplot(Tableau_analyse_decriptive1, aes(x = "", y = `Pourcentage du nombre total
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Résultats:
-En termes de pourcentage de surface, les 4 cultures les plus présentes en 2010, par ordre, sont: "Prairies permanentes", "Blé tendre", "Prairies temporaires" et "Maïs grain et ensillage".
-Et en termes de pourcentage de parcelles, les 4 cultures les plus présentes sont, par ordre, "Prairies permanentes", "Prairies temporaires", "Blé tendre" et "Maïs grain et ensillage".
-On remarque que les 4 cultures les plus cultivées sont les mêmes en considérant le pourcentage de surface agricole ou le pourcentage de parcelles.
+Résultats: En termes de pourcentage de surface, les 4 cultures les plus présentes en 2010, par ordre, sont: "Prairies permanentes", "Blé tendre", "Prairies temporaires" et "Maïs grain et ensillage". Et en termes de pourcentage de parcelles, les 4 cultures les plus présentes sont, par ordre, "Prairies permanentes", "Prairies temporaires", "Blé tendre" et "Maïs grain et ensillage". On remarque que les 4 cultures les plus cultivées sont les mêmes en considérant le pourcentage de surface agricole ou le pourcentage de parcelles.
+
+# Cartes
+```{r}
+#Pour les cartes
+#
+contours <- st_read(here(dir$communes,"communes-20220101.shp")) %>% 
+  mutate(geo_unit = insee)
+# Add geometry variable
+results_df_contours <- inner_join(RPG_20072010_df %>% as.data.frame(), 
+                                  contours %>% as.data.frame(), 
+                                  by = "geo_unit")
+ 
+# Convert df aas a sf object
+RPG_20072010_sf <- results_df_contours  %>%  
+  st_as_sf() %>% 
+  dplyr::select(geo_unit, name, region, year,data_type, surf_tot_geo_unit_m2, surf_agri_geo_unit_m2, N_Parcels,
+                CODE_GROUP, cult_label, surf_cult_m2, surf_cult_perc, parcel_cult_n, parcel_cult_perc)
+```
+
+
+
 
 ## Analyse par communes et par année
 
-Pour chaque commune, on calcule la surface agricole totale (somme de toutes les parcelles agricoles), puis on calcule la surface dédiée à chaque culture (somme des surfaces des parcelles dans la commune dédiées à cette culture). On peut ainsi obtenir un pourcentage de surface dédié à cette culture, par commune, et par année. 
+Pour l'année 2010 nous allons essayer de représenter sur une carte, par département, la culture la plus cultivée.
 
 ```{r}
-result <- df_2010 %>%
-  group_by(name, cult_label) %>%
-  summarise(
-    surf_agri_totale = sum(surf_agri_geo_unit_m2, na.rm = TRUE),
-    surf_cult_totale = sum(surf_cult_m2, na.rm = TRUE),
-    pourcentage_surface = (sum(surf_cult_m2, na.rm = TRUE) / sum(surf_agri_geo_unit_m2, na.rm = TRUE)) * 100
+
+# Nettoyer la colonne surf_cult_perc
+RPG_20072010_sf$surf_cult_perc <- as.numeric(str_extract(RPG_20072010_sf$surf_cult_perc, "[0-9\\.]+"))
+
+# Filtrer les données pour l'année 2010
+df_2010 <- RPG_20072010_sf %>% filter(year == 2010)
+
+# Trouver la culture la plus cultivée pour chaque commune
+most_cultivated_per_commune <- df_2010 %>%
+  group_by(name) %>%
+  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
+  ungroup()%>%
+  # Sélectionner uniquement les colonnes nécessaires
+  transmute(
+    Commune = name,
+    Culture_la_plus_cultivée = cult_label
+  )
+
+# Afficher les résultats
+print(most_cultivated_per_commune)
+```
+Sur une map les résultats sont visibles: 
+```{r}
+ggplot(data = most_cultivated_per_commune) +
+  geom_sf(aes(fill = Culture_la_plus_cultivée), color = NA) +  # Pas de contour visible
+  labs(title = "Culture la plus cultivée par commune en 2010",
+       fill = "Culture la plus cultivée") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+### Pour 2007 
+
+```{r}
+df_2007 <- RPG_20072010_sf %>% filter(year == 2007)
+
+# Trouver la culture la plus cultivée pour chaque commune
+most_cultivated_per_commune_2007 <- df_2007 %>%
+  group_by(name) %>%
+  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
+  ungroup()%>%
+  # Sélectionner uniquement les colonnes nécessaires
+  transmute(
+    Commune = name,
+    Culture_la_plus_cultivée = cult_label
+  )
+
+print(most_cultivated_per_commune_2007)
+
+ggplot(data = most_cultivated_per_commune_2007) +
+  geom_sf(aes(fill = Culture_la_plus_cultivée), color = NA) +  # Pas de contour visible
+  labs(title = "Culture la plus cultivée par commune en 2007",
+       fill = "Culture la plus cultivée") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+### Pour 2008 
+```{r}
+df_2008 <- RPG_20072010_sf %>% filter(year == 2008)
+
+# Trouver la culture la plus cultivée pour chaque commune
+most_cultivated_per_commune_2008 <- df_2008 %>%
+  group_by(name) %>%
+  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
+  ungroup()%>%
+  # Sélectionner uniquement les colonnes nécessaires
+  transmute(
+    Commune = name,
+    Culture_la_plus_cultivée = cult_label
+  )
+
+print(most_cultivated_per_commune_2008)
+
+ggplot(data = most_cultivated_per_commune_2008) +
+  geom_sf(aes(fill = Culture_la_plus_cultivée), color = NA) +  # Pas de contour visible
+  labs(title = "Culture la plus cultivée par commune en 2008",
+       fill = "Culture la plus cultivée") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+### Pour 2009 
+```{r}
+df_2009 <- RPG_20072010_sf %>% filter(year == 2009)
+
+# Trouver la culture la plus cultivée pour chaque commune
+most_cultivated_per_commune_2009 <- df_2009 %>%
+  group_by(name) %>%
+  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
+  ungroup()%>%
+  # Sélectionner uniquement les colonnes nécessaires
+  transmute(
+    Commune = name,
+    Culture_la_plus_cultivée = cult_label
+  )
+
+print(most_cultivated_per_commune_2009)
+
+ggplot(data = most_cultivated_per_commune_2009) +
+  geom_sf(aes(fill = Culture_la_plus_cultivée), color = NA) +  # Pas de contour visible
+  labs(title = "Culture la plus cultivée par commune en 2009",
+       fill = "Culture la plus cultivée") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+## Analyse dynamique; Évolution de la culture la plus présente par commune entre 2007 et 2010: 
+```{r}
+
+# Créer un tableau pour chaque année et combiner les résultats
+most_cultivated_per_commune_all_years <- RPG_20072010_sf %>%
+  filter(year %in% 2007:2010) %>%  # Filtrer les années de 2007 à 2010
+  group_by(year, name) %>%
+  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
+  ungroup() %>%
+  transmute(
+    Commune = name,
+    Année = year,
+    Culture_la_plus_cultivée = cult_label
+  )
+
+# Vérifier le tableau préparé
+head(most_cultivated_per_commune_all_years)
+```
+
+```{r}
+most_cultivated_per_commune_all_years$Année <- as.numeric(as.character(most_cultivated_per_commune_all_years$Année))
+
+
+p <- ggplot(data = most_cultivated_per_commune_all_years) +
+  geom_sf(aes(fill = Culture_la_plus_cultivée), color = NA) +  # Pas de contour visible
+  labs(title = "Culture la plus cultivée en {closest_state}",  # Dynamique pour l'année
+       fill = "Culture la plus cultivée") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+animated_map <- p +
+  transition_states(Année, transition_length = 2, state_length = 1) +  # Variable représentant l'année
+  ease_aes('linear') +  # Transition linéaire pour l'animation
+  labs(title = "Culture la plus cultivée en {closest_state}")  # Titre dynamique pour l'année
+
+animated_map
+
+anim_save("animated_culture_map.gif", animation = animated_map)
+```
+
+
+## Indice de diversité: 
+
+Indice de Shannon : L'indice prend en compte le nombre d'espèces vivant dans un habitat (richesse) et leur abondance relative (uniformité). Il est calculé comme l'opposé de la somme de la proportion des individus de la ième espèce dans l'ensemble de la communauté, multipliée par son logarithme naturel.
+Indice de Simpson : L'indice de diversité de Simpson est une mesure de la diversité qui prend en compte le nombre d'espèces présentes ainsi que l'abondance relative de chaque espèce. À mesure que la richesse en espèces et l'uniformité augmentent, la diversité augmente également.
+
+L'indice de diversité de Simpson est calculé en prenant la proportion de chaque espèce dans une communauté, en élevant ces proportions au carré, en les additionnant, puis en soustrayant cette somme de 1. Cet indice varie de 0 (aucune diversité) à 1 (diversité élevée).
+
+```{r}
+RPG_20072010_df$surf_cult_perc <- as.numeric(str_extract(RPG_20072010_df$surf_cult_perc, "[0-9\\.]+"))
+
+diversity_indices <- RPG_20072010_df %>%
+  group_by(year, name) %>%
+  summarize(
+    shannon_diversity = diversity(surf_cult_perc, index = "shannon"),
+    simpson_diversity = diversity(surf_cult_perc, index = "simpson"),
   ) %>%
   ungroup()
 
-print(result)
 ```
 
 
-### Culture la plus présente par commune 
- 
-La culture avec la plus grande surface par commune et par année
 
-```{r}
-# Créer le tableau de données pour la carte
-culture_plus_presente_pourc <- RPG_20072010 %>%
-  group_by(name, year) %>%
-  filter(surf_cult_perc == max(surf_cult_perc, na.rm = TRUE)) %>%
-  ungroup()
-
-```
-
-```{r}
-# Calcul de la diversité à partir du nombre de cultures différentes 
-diversite_cultures <- RPG_20072010 %>%
-  group_by(name, year) %>%
-  summarise(nombre_cultures = n_distinct(cult_label)) %>%
-  ungroup()
-```
-
-```{r}
-commune_specifique <- "Abainville"
-
-
-plot_data <- culture_plus_presente_pourc %>%
-  filter(name == commune_specifique) %>%
-  ggplot(aes(x = year, y = surf_cult_perc, fill = cult_label)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(title = paste("Évolution des cultures à", commune_specifique),
-       x = "Année", y = "Pourcentage de surface cultivée") +
-  theme_minimal()
-print(plot_data)
-```
-
-```{r}
-# Calcul de l'indice de Shannon-Wiener basé sur la surface cultivée
-
-indice_diversite <- RPG_20072010 %>%
-  group_by(geo_unit, year) %>%
-  summarise(indice_diversite_surf = diversity(surf_cult_m2),
-            indice_diversite_surf_perc = diversity(surf_cult_perc),
-            indice_diversite_parcel_perc = diversity(parcel_cult_perc))
-
-```
-
-# Culture la plus présente par département en utilisant le nombre de parcelles
-
-```{r}
-culture_plus_presente_parcels <- RPG_20072010 %>%
-  group_by(name, year) %>%
-  filter(parcel_cult_perc == max(parcel_cult_perc, na.rm = TRUE)) %>%
-  ungroup()
-
-```
